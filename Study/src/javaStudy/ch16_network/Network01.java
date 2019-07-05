@@ -112,15 +112,149 @@ public class Network01 {
 	 * 			URL url = new URL("www.naver.com");
 	 * 		
 	 * 		- ex의 PracticeURL01 예제 참고 (16-2)
+	 * 
+	 * 		1.4.2 블로그 요약글 https://hyunssssss.tistory.com/244 [현's 블로그]
+	 * 		- http,ftp,telnet 등의 서비스를 지원하는 웹 서버들의 위치를 표현하는 체계이다.
+	 *		- 보통 다음의 형태를 가진다 - protocol://hostname[:port]/path (ex. http://naver.com)
+	 *		
+	 *		- URL 클래스 : 웹상의 주소를 나타내는 클래스, URL 객체 생성 시 잘못된 URL 형태를 줬을때 예외처리를 해줘야함
+	 *		- URL 클래스 사용시 간단하게 호스트로부터 데이터를 읽어올 수 있다.
+	 *		- ex1)
+	 *		  -ex1
+
+			  ->URL클래스로 호스트의 정보를 표시하고 페이지를 화면에 출력하는 예제
+			
+				1) URL 객체 생성
+				
+				  URL url = new URL("http://www.naver.com");
+				
+				2) URL객체로의 스트림 열기
+				
+				  InputStream in = url.openStream();
+				
+				3) 받는 스트림을 버퍼에 저장
+				
+				  BufferedReader bf = new BufferedReader( new InputStreamReader(in));
+				
+				4) 버퍼를 화면에 출력하고 스트림 닫기
+				출처: https://hyunssssss.tistory.com/244 [현's 블로그]
+	 *			
 	 * 	
 	 *	1.5 URLConnection
-	 *		 참고 https://goddaehee.tistory.com/161
+	 *		참고 https://goddaehee.tistory.com/161
 	 *
 	 *		- URLConnection은 어플리케이션과 URL간의 통신연결을 나타내는 최상위 클래스로 추상클래스이다.
 	 *		- URLConnection을 상속받아 구현한 클래스(하위 클래스)는 HttpURLConnection, JarURLConnection이 있다.
 	 *		  URL의 프로토콜이 HTTP이라면 openConnection()은 Http URLConnection을 반환한다.
 	 *		- URLConnection을 사용하여 연결하고자하는 자원에 접근, 읽기, 쓰기를 할 수 있다.
-	 *		- URLConnection의 메소드(자바의 정석 954페이지)
+	 *	
+	 *
+	 *		javaKing 블로그 부분 정보(http://blog.naver.com/javaking75/140188363267)
+			 - URL url = new URL(strUrl); //URL객체를 생성
+		       InputStream is = url.openStream(); //서버로부터 데이터를 주고 받을수있게 스트림을 연결.
+		       ★★★///openStream()메소드를 이용하면 URL이 위치한곳과 자동으로 접속이 일어나고,★★★ 
+		       //그 결과로 Inpusstream이 반환된다.
+			   [출처] [Java] 네트워크 (Network) - 개요, InetAddress, URL, URLConnection 클래스|작성자 자바킹
+	
+		
+	 *	   - URLConnection의 메소드(자바의 정석 954페이지)
+	 *			1) void addRequestProperty(String key, String value)   
+	 *													: 지정된 키와 값을 RequestProperty에 추가, 
+	 *			   기존의 중복되는 키가 있는 경우 값을 덮어쓰지 않는다(그럼? 2개 이상부터 배열처리? 아님 동일키에 다른 값이 생김? check 필요).
+	 *			   -> 블로그 요약글 참고 : [http://jo.centis1504.net/?p=1570] 참고: 키 중복시 배열, 복수 맵 생성이 아니고, 최초 데이터 이후의 중복된 데이터는 받지 않음
+	 *			   							-> 따라서, 중복된 데이터를 넣어줄 경우 split으로 찢을걸 생각하고 
+	 *			ex) httpUrl.setRequestProperty("duplicationEX", "A") 이후 httpUrl.setRequestProperty("duplicationEX", "B")가 아니라
+	 *				httpUrl.setRequestProperty("duplicationEX", "A, B") 이런 식으로 중복이 필요한 데이터를 합쳐서 넣어줘야한다.
+	 *				흠...
+	 *			
+	 *			2) void connect();						: URL에 지정된 자원에 대한 통신을 연결
+	 *			3) boolean getAllowUserInteration()		: UserInteraction의 허용여부 반환
+	 *			4) int getConnectTimeOut(), void setConnectTimeOut() 
+	 *													: 연결 종료 시간을 천분의 일초로 반환, 연결 종료 시간 설정
+	 *			5) Object getContent()					: content객체를 반환
+	 *			6) Object getContent(Class[] classes)	: content객체를 반환
+	 *			7) String getContentEncoding()			: content의 인코딩을 반환
+	 *			8) int getContentLength()				: content의 크기를 반환
+	 *			9) String getContentType()				: content의 타입 반환
+	 *			10)long getDate()						: 헤더의 date필드의 값을 반환
+	 *			11)boolean getDefaultAllowUserInteraction()
+	 *													: defaultAllowUserInteraction의 값을 반환
+	 *			12)String getDefaultRequestProperty(String key)
+	 *													: RequestProperty에서 지정된 키의 디폴트 값을 얻는다.
+	 *			13)boolean getDefaultUseCaches()		: useCache의 디폴트 값을 얻는다
+	 *			14)boolean getDoInput(), void setDoInput(boolean doinput)
+	 *													: doInput의 필드값을 얻는다. (doInput의 필드값?) / doInput 필드 값을 설정
+	 *			15)boolean getDoOutput(), void setDoOutput(boolean dooutput)
+	 *													: doOutput의 필드값을 얻는다.(doOutput의 필드값?) / doOutput 필드값을 설정
+	 *			16)long getExpiration()					: 자원(URL)의 만료일자를 얻는다(천분의 일초단위)
+	 *			17)FileNameMap getFileNameMap(), void setFileNameMap(FileNameMap map)
+	 *													: 파일 네임 맵(mimetable)을 반환한다. / 파일 네임 맵을 설정
+	 *		   ★18)String getHeaderField(int n)			: 헤더의 n번째 필드를 읽어온다.
+	 *			19)String getHeaderField(String name)	: 헤더에서 지정된 이름의 필드를 읽어온다.
+	 *			20)long getHeaderFieldDate(String name, long Default)
+	 *													: 지정된 필드의 값을 날짜값으로 변환하여 반환한다.
+	 *													: 필드 값이 유효하지 않을 경우 디폴트값을 반환
+	 *			21)int getHeaderFieldDateInt(String name, int Default)
+	 *													: 지정된 필드의 값을 정수값으로 변환하여 반환한다.
+	 *													: 필드값이 유효하지 않은 경우 디폴트 값을 반환
+	 *			22)String getHeaderFieldKey(int key)	: 헤더의 n번째 필드를 읽어온다.
+	 *		   ★23)Map getHeaderFields()				: 헤더의 모든 필드와 값이 저장된 Map을 반환
+	 *		   ?24)long getIfModifiedSince(), void setIfModifiedSince(long ifmodifiedsince)
+	 *													: ifModifiedSince(변경여부) 필드의 값을반환 / modifiedSince 필드 값을 설정
+	 *			25)long getLastModified()				: LastModified(최종변경일) 필드의 값을 반환
+	 *		   ★26)InputStream getInputStream()			: URLConnection에서 InputStream을 반환
+	 *		   ★27)OutputStream getOutputStream()		: URLConnection에서 OutputStream을 반환
+	 *			28)Permission getPermission()			: Permission(허용권한)을 반환
+	 *			29)int getReadTimeOut()					: 읽기 제한시간의 값을 반환(천분의 일초)
+	 *			30)void setReadTimeOut()				: 읽기 제한시간의 값을 설정(천분의 일초)
+	 *			31)Map getReqeustProperties()			: RequestProperties에 저장된(키, 값)을 Map으로 반환
+	 *													  setRequestProperties(parameter)는 없는듯, 아마 setRequestProperty()로 넣고
+	 *													  전체를 반환하는 역할만 하는듯
+	 *			32)String getRequestProperty(String key): RequestProperty에서 지정된 키의 값을 반환
+	 *			33)URL getUrl()							: URLConnection의 URL반환 
+	 *			34)boolean getUseCaches(), void setUseCaches(boolean usecaches)				
+	 *													: 캐시의 사용 여부를 반환 / 캐시의 사용 여부 설정
+	 *			35)String guessContentTypeFromName(String fname)
+	 *													: 지정된 파일(fname)의 content-type을 추측하여 반환
+	 *			36)String guessContentTypeFromStream(InputString is)
+	 *													: 지정된 입력 스트림(is)의 content-type을 추측하여 반환
+	 *			37)void setAllowUserInteraction(boolean allowuserinteraction)
+	 *													: UserInteraction의 허용여부를 설정
+	 *			38)void setContentHandlerFactory(ContentHandlerFactory fac)
+	 *													: contentHandlerFactory를 설정
+	 *			39)void setDefaultAllowUserInteraction(boolean defaultallowuserinteraction)
+	 *													: UserInteraction 허용 여부의 기본값 설정
+	 *			40)void setDefaultRequestProperty(String key, String value)
+	 *													: RequestProperty의 기본 키쌍을 설정
+	 *			41)void setDefaultUseCaches(boolean defaultusecaches)
+	 *													: 캐시 사용여부의 기본값 설정
+	 *			42)void setFileNameMap(FileNameMap map)	: FileNameMap 필드값을 설정
+	 *
+	 *			- ex의 PracticeURLConnection01 예제 참고 (16-3)
+	 *			- ex의 PracticeURLConnection02 예제 참고 (16-4)
+	 *
+	 *			URL에 연결하여 그 내용을 읽어오는 예제이다. 
+	 *			만일 URL이 유효하지 않으면 Malformed - URLException이 발생
+	 *			openStream()을 호출하여 URL의 InputStream을 얻은 이후로는 
+	 *			파일로 부터 데이터를 읽는 것과 다르지 않다.
+	 *			openStream()은 openConnection()을 호출해서 URLConnection을 얻은 다음
+	 *			여기에 다시 getInputStream()을 호출한 것과 같다.
+	 *			즉 URL에 연결해서 InputStream을 얻어 온다.
+	 *
+	 *			InputStream in = url.openStream() <---> URLConnection conn = url.openConnection()
+	 *											  		InputStream in = conn.getInputStream();
+	 *
+	 *			이진 데이터를 읽어서 파일에 저장하는 예제(FileReader -> FileOuputStream 사용)
+	 *			- ex의 PracticeURLConnection03 예제 참고 (16-5)
+	 *
+	 *			
+	 *
+	 * 
+	 *			
+	 *
+	 *			
+	 *			
+	 *
 	 *		
 	 * 
 	 * 
