@@ -1,4 +1,4 @@
-package javaStudy.ch16_network.ex;
+package javaStudy.ch16_network.ex.URLConnection;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;

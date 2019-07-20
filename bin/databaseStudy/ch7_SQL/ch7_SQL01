@@ -1,0 +1,517 @@
+	7장에서는 SQL 구문 작성하는 방법으로 조건분기, 집합 연산, 윈도우 함수를 살펴보고
+	SQL에서 데이터를 갱신하는 바법에 대해 소개한다.
+	
+1. SQL과 조건 분기
+ -  일반적인 분기 IF, SWITCH
+ -  CASE식의 조건 분기 : CASE식의 구문에는 '단순 CASES식', '검색 CASE식' 두 종류 존재(검색CASE식이 단순 CASE식 기능 포함)
+ -	구조
+ 	CASE WHEN [평가식] THEN [식]
+ 		 WHEN [평가식] THEN [식]
+ 		 WHEN [평가식] THEN [식]
+ 		 ...
+ 		 ELSE [식]
+ 	END
+ 
+ 	-> WHEN구의 평가식은 '필드=값'처럼 조건을 지정하는 식을 말하며, WHERE 구에 조건을 작성하는 방법과 동일
+ 	
+-	CASE식의 작동
+	:CASE식의 작동은 절차 지향형 프로그래밍 언어의 SWITCH 조건문과 유사,
+	 처음에 있는 WHEN 구의 평가식부터 평가되고 조건이 맞으면 THEN 구에서 지정한 식이 리턴되며 CASE식 전체가 종료됨,
+	 만약, 조건이 맞지 않으면 다음 WHEN 구로 이동해 같은 처리를 반복함
+	 마지막 WHEN 구까지 반복했는데도 조건에 맞는 경우가 없으면 ELSE에서 지정한 식이 리턴되며 CASE 종료
+	 
+	 절차 지향형 언어의 조건 분기와 SQL 조건분기의 차이점은 리턴값이다.
+	 절차 지향형 언어의 조건분기는 문장을 실행하고 리턴하지 않을 수 있지만, SQL의 조건분기는 특정한 값(상수)를 리턴함
+
+-	일종의 '교환' 개념이다!
+	(SQL 조건 예)
+	SELECT name, addr,
+		CASE WHEN	addr='서울시'  THEN '경기1'
+			 WHEN	addr='인천시'  THEN '경기2'
+			 WHEN	addr='부산시'  THEN '영남'
+			 WHEN	addr='속초시'  THEN '관동'
+			 WHEN	addr='광주시'  THEN '호남'
+			 ELSE 	null		   END	 as district 
+	FROM	ADDRESS
+	->  조건을 만족하는 > 서울, 인천... 등의 조건식의 해당 값이 then 값으로 교환됐다.
+		또한, 식을 사용할 수 있는 select, where, group by, having, order by 구의 
+		어디에나 적절히 사용할 수 있는 장점이 있다.
+		
+2. SQL의 집합 연산(동일한 컬럼으로 구성된 복수의 테이블을 대상으로 함)
+	-	테이블을 사용해 집합 연산하는 기능 : 집합 연산의 기본은 합집합과 교집합이다. 
+											 where 구에서는 합집합을 OR, 교집합 AND가 담당한다. 
+										 	 하지만, 집합 연산에서는 연산자가 다르다.
+	
+	1) UNION으로 합집합 구하기
+ 	- where 구의 OR -> 테이블 합집합 UNION
+ 		ex) SELECT * FROM ADDRESS1 
+	 		UNION
+ 			SELECT * FROM ADDRESS2;
+ 			
+ 		- 두 테이블의 SELECT 결과를 하나로 합친다. 이때 서로 중복되는 데이터는 중복 데이터를 제거 후 반영된다.(민영, 민영 -> 민영)
+ 		(INTERSECT, EXCEPT 동일) 만약 중복 제거를 원하지 않는다면 'UNION ALL'과 같은 ALL 옵션을 붙인다.
+ 		
+ 	
+ 	
+ 	2) INTERSECT 교집합 구하기
+ 	- where 구의 AND -> 테이블 교집합(교차) INTERSECT
+ 		EX) SELECT * FROM ADDRESS1
+ 			INTERSECT
+ 			SELECT * FROM ADDRESS2
+ 			
+ 		- 양쪽 테이블의 공통 데이터만 출력된다.(중복된 레코드는 제외)
+
+	
+	3) EXCEPT 차집합 구하기(오라클에서는 MINUS연산자)
+	- 차집합을 수행하는 EXCEPTE로 '제외' 연산 역할
+ 		EX) SELECT * FROM ADDRESS1
+ 			EXCEPT
+ 			SELECT * FROM ADDRESS2
+ 			
+ 		- (ADDRESS1 - ADDRESS2)에 해당하는 결과를 얻을 수 있다(ADDRESS1에서 ADDRESS2과의 교집합을 제외한 결과 반환)
+ 		
+
+3. 윈도우 함수(OVER()에 키(기준 컬럼 역할을 하는)에 해당하는 컬럼 정보를 설정해준다.)
+	-	집약 기능이 없는 'GROUP BY 구' 역할을 한다. 
+		즉, group by의 기능인 '자르기'와 '집약' 기능에서 '윈도우' 함수는 자르기 기능만 있다.
+			EX.1) SELECT address_column, count(*) FROM ADDRESS1 GROUP BY address_column
+			-> 위와 같은 쿼리의 경우 address_column과 해당 컬럼의 갯수를 반환한다.
+			(테이블을 address_column으로 자르고, 잘라진 컬럼 중 같은 값의 갯수를 추가해준다.)
+		
+		
+		윈도우 함수의 경우 위의 과정을 'PARTITION BY'라는 구로 수행한다. 차이점은 자른 후 집약하지 않기 때문에
+		출력 결과의 레코드 수가 입력되는 테이블의 레코드 수와 같다는 점이다.
+		윈도우 함수의 기본적인 구문은 집약 함수 뒤에 'OVER 구'를 작성하고, 
+		내부에 자르려는 '키'를 지정하는 PARTITION BY 또는 ORDER BY를 입력한다.(둘 중 하나만 입력해도 되고, 둘 다 입력해도 된다.)
+		작성하는 위치는 SELECT 구라고 생각해도 문제 없다.
+			EX.2) SELECT addr, count(*) OVER(partition by addr) FROM ADDRESS1 ;
+			집약 기능이 없기 때문에 EX.1)과 달리 각 ADDR별로 COUNT 수 대로 반환된다.
+			즉, EX.1)은 서울/3이라면 EX.2) 서울/3, 서울/3, 서울/3과 같이 동일한 ADDR에 대해 COUNT 수 만큼 출력된다.
+			이는 윈도우 함수는 집약 기능이 없기 때문이다.
+			
+		
+		이외에도 윈도우 함수로 사용할 수 있는 함수로는 COUNT, SUM과 같은 일반 함수 외에도, 
+		윈도우 함수 전용 함수로 제공되는 RANK, ROW_NUMBER 등의 순서 함수가 있다.
+		특히 RANK함수는 지정된 키로 레코드에 순위를 붙이는 함수이다.
+			EX.3) SELECT name, age, RANK() OVER(ORDER BY age DESC) as age_rank FROM ADDRESS1 ; (나이별 순위구하는 예제)
+			RANK 함수는 키에 해당하는 컬럼의 값으로 RANKING을 매긴다. 만약 키 컬럼의 값이 같은 경우는 RANKING 역시 중복 RANKING이
+			적용된다. 예를 들어 중복 순위가 1, 2, 3, 3, 3위의 경우 3위 다음에 6위의 등수가 매겨진다.
+			이러한 순위 건너뜀 작업을 원치 않는 다면, DENSE_RANK 함수를 사용한다(EX - 1, 2, 2, 2, 3, 4, 5).
+			
+
+	<윈도우 함수 소개 및 정리	 (http://www.gurubee.net/lecture/2382,
+								  https://geniusjo.tistory.com/entry/%EC%9C%88%EB%8F%84%EC%9A%B0-%ED%95%A8%EC%88%98WINDOW-FUNCTION,
+								  PPAS TUTORIAL : http://www.postgresqltutorial.com/postgresql-window-function/)>
+								  
+	- 순위(RANK) 		관련 : RANK, DENSE_RANK, ROW_NUMBER(대부분 지원)
+	- 집계(AGGREGATE) 	관련 : SUM, MAX, MIN, AVG, COUNT(SQL SERVER OVER 내 ORDER BY 지원 x)
+	- 순서 				관련 : FIRST_VALUE, LAST_VALUE, LAG, LEAD(오라클만 지원)
+	- 그룹 내 비율 		관련 : CUME_DIST, PERCENT_RANK, NTILE, RATIO_TO_REPORT (디비마다 다름)
+	- 선형 분석을 포함한 통계관련 : CORR, COVAR_POP 등...
+	
+	WINDOW FUNCTION SYNTAX
+	-윈도우 함수에는 OVER 문구가 키워드로 필수 포함됨
+	SELECT WINDOW_FUNCTION (ARGS) OVER([PARTITION BY COLUMN] [ORDER BY 절] [WINDOWING 절])
+	FROM TABLE_NAME ;
+	
+	-> PARTITION BY 절 : 전체 집합을 기준에 의해 소그룹으로 나눌 수 있다.
+	-> ORDER BY  절    : 어떤 항목에 대해 순위를 지정할 지 ORDER BY 절로 설정
+	-> WINDOWING 절	   : 함수의 대상이 되는 행 기준의 범위를 강력하게 지정할 수 있다.
+						 ROWS는 물리적인 결과 행의 수를, RANGE는 논리적인 값의 범위를 나타냄
+
+	- DETAILS
+		1) RANK		: RANK 함수는 ORDER BY를 포함한 쿼리 문에서 특정 항목(키 컬럼)에 대한 순위를 구함
+			-> 이때 특정 범위(PARTITION) 내에서 순위를 구할 수도 있고 전체 데이터에 대한 순위를 구할 수 도 있다.
+			
+			EX)	SELECT JOB, ENAME, SAL,
+		       		RANK( ) OVER (ORDER BY SAL DESC) ALL_RANK, 
+		       		RANK( ) OVER (PARTITION BY JOB ORDER BY SAL DESC) JOB_RANK (JOB 컬럼 내에서 또 순위 매김)
+		  		FROM EMP;
+		  		
+		  		
+		  		<RESULT>
+		  		--------- ---------- ---------- ---------- ----------
+				JOB       ENAME             SAL   ALL_RANK   JOB_RANK
+				--------- ---------- ---------- ---------- ----------
+				PRESIDENT KING             5000          1          1
+				ANALYST   FORD             3000          2          1
+				ANALYST   SCOTT            3000          2          1
+				MANAGER   JONES            2975          4          1
+				MANAGER   BLAKE            2850          5          2
+				MANAGER   CLARK            2450          6          3
+				SALESMAN  ALLEN            1600          7          1
+				SALESMAN  TURNER           1500          8          2
+				CLERK     MILLER           1300          9          1
+				SALESMAN  WARD             1250         10          3
+				SALESMAN  MARTIN           1250         10          3
+				CLERK     ADAMS            1100         12          2
+				CLERK     JAMES             950         13          3
+				CLERK     SMITH             800         14          4
+				--------- ---------- ---------- ---------- ----------
+	  	
+  	
+  		2) ROW_NUMBER	: ROW_NUMBER 함수는 RANK나 DENSE_RANK함수가 동일한 값에 대해서 
+  						  동일한 순위를 부여하는 것과 달리 동일한 값이라도 고유한 순위를 부여한다.
+		
+				EX)	SELECT JOB, ENAME, SAL 
+				     , RANK( ) OVER (ORDER BY SAL DESC) RANK
+				     , ROW_NUMBER() OVER (ORDER BY SAL DESC) ROW_NUMBER
+				  	FROM EMP; 
+					
+					<RESULT>
+					--------- ---------- ---------- ---------- ----------
+					JOB       ENAME             SAL       RANK ROW_NUMBER
+					--------- ---------- ---------- ---------- ----------
+					PRESIDENT KING             5000          1          1
+				V	ANALYST   FORD             3000          2          2
+				V	ANALYST   SCOTT            3000          2          3 
+					MANAGER   JONES            2975          4          4
+			  		--------- ---------- ---------- ---------- ----------				
+  					
+  						  
+  		3) 일반집계함수 (SUM, MAX, MIN, AVG, COUNT...) 
+  			- SUM을 이용하여 파티션별 윈도우의 합을 구할 수 있다.
+  		
+  		
+  		
+	  		UNBOUND   : 한계를 두지 않고, 해당 파티션의 끝까지를 의미
+	  		
+	  		PRECEDING : 현재행에서 앞쪽의 행을 나타냄 (; 3 PRECEDING:현재행으로부터 앞의 3번쨰 행을 범위로 지정, 
+	  													UNBOUND PRECEDING: 윈도우의 시작 위치가 해당 파티션의 첫번째 ROW)
+	  													
+	  		FOLLOWING : 현재행에서 뒷쪽의 행을 나타냄 (; UNBOUND FOLLOWING : 윈도우의 마지막 위치가 마지막 ROW,
+	  													 FOLLOWING 사용하기 위해서 BETWEEN AND 병행해야 함)
+	  		
+	  		CURRENT ROW : 윈도우의 시작이나 끝 위치가 현재 로우이다.
+	  												 
+				(1)SUM
+				
+					  - SELECT MGR, ENAME, SAL
+						   , SUM(SAL) OVER (PARTITION BY MGR) MGR_SUM 
+						FROM EMP ;
+						
+						<RESULT>		
+						----------  ---------- ---------- ----------		
+							   MGR  ENAME             SAL    MGR_SUM
+						----------  ---------- ---------- ----------
+						      7566  FORD             3000       6000
+						      7566  SCOTT            3000       6000
+						      7698  JAMES             950       6550
+						      7698  ALLEN            1600       6550
+						      7698  WARD             1250       6550
+						      7698  TURNER           1500       6550
+						      7698  MARTIN           1250       6550
+						----------  ---------- ---------- ----------			      
+						      
+						 -> MGR을 기준 키 컬럼으로하여 MGR별 SAL 합계를 MGR_SUM로 정의후 구함
+			 
+
+
+				 (1.2) SUM
+				 	- SELECT MGR, ENAME, SAL
+					     , SUM(SAL) OVER (PARTITION BY MGR ORDER BY SAL RANGE UNBOUNDED PRECEDING) as MGR_SUM 
+					  FROM EMP;
+					  
+					<내가 이해 못했던 부분> 
+					   MGR별 SAL이 같은 경우 MGR_SUM에 ROW별로 SUM하지 않고 같은 
+					   MGR값은 (값*갯수)의 값이 더해짐 즉, MGR 7566의 경우 (3000*2)이 첫 MGR_SUM부터 더해져서 나옴
+					   
+					<RESULT>
+					----------  ---------- ---------- ----------
+					       MGR ENAME             SAL    MGR_SUM
+					---------- ---------- ---------- ----------
+					      7566 SCOTT            3000       6000
+					      7566 FORD             3000       6000
+					      7698 JAMES             950        950
+					      7698 WARD             1250       3450
+					      7698 MARTIN           1250       3450
+					      7698 TURNER           1500       4950
+					      7698 ALLEN            1600       6550
+					      7782 MILLER           1300       1300
+					      7788 ADAMS            1100       1100
+					      7839 CLARK            2450       2450
+					      7839 BLAKE            2850       5300
+					      7839 JONES            2975       8275
+					      7902 SMITH             800        800
+					           KING             5000       5000
+					----------  ---------- ---------- ----------
+				
+				
+				(2) MAX
+					-	SELECT MGR, ENAME, SAL
+					     , MAX(SAL) OVER (PARTITION BY MGR) as MGR_MAX 
+  					  	FROM EMP;
+  					  	
+  					  	MGR 키 컬럼(컬럼의 DOMAIN과 유사 개념?) 중 MAX값만 반환(MIN도 있음)
+  					  	
+  					  	
+  				(3) AVG
+  				
+	  				- SELECT MGR, ENAME, HIREDATE, SAL
+					     , ROUND (AVG(SAL) OVER (PARTITION BY MGR ORDER BY HIREDATE ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING)) as MGR_AVG 
+					  FROM EMP; 
+							  
+						<RESULT>
+						---------- ---------- --------- ---------- ----------
+						       MGR ENAME      HIREDATE         SAL    MGR_AVG
+						---------- ---------- --------- ---------- ----------
+						      7566 FORD       03-DEC-81       3000       3000
+						      7566 SCOTT      09-DEC-82       3000       3000
+						      7698 ALLEN      20-FEB-81       1600       1425
+						      7698 WARD       22-FEB-81       1250       1450
+						      7698 TURNER     08-SEP-81       1500       1333
+						      7698 MARTIN     28-SEP-81       1250       1233
+						      7698 JAMES      03-DEC-81        950       1100
+						      7782 MILLER     23-JAN-82       1300       1300
+						      7788 ADAMS      12-JAN-83       1100       1100
+						      7839 JONES      02-APR-81       2975       2913
+						      7839 BLAKE      01-MAY-81       2850       2758
+						      7839 CLARK      09-JUN-81       2450       2650
+		  				---------- ---------- --------- ---------- ----------  	
+		 
+  		
+							 
+  				(4) COUNT
+  				
+	  				- SELECT ENAME, SAL
+					     , COUNT(*) OVER (ORDER BY SAL RANGE BETWEEN 50 PRECEDING AND 150 FOLLOWING) as SUM_CNT
+					  FROM EMP;
+							  
+						<RESULT>
+						---------- ---------- ----------	
+						ENAME             SAL    SUM_CNT
+						---------- ---------- ----------
+						SMITH             800          2
+						JAMES             950          2
+						ADAMS            1100          3
+						WARD             1250          3
+						MARTIN           1250          3
+						MILLER           1300          3
+						TURNER           1500          2
+						ALLEN            1600          1
+						CLARK            2450          1
+						BLAKE            2850          4
+						JONES            2975          3
+						SCOTT            3000          3
+						FORD             3000          3
+						KING             5000          1
+		  				---------- ---------- ----------
+		  				
+		  				-> 파티션 설정이 없으므로 전체 SAL DOMAIN에서 현재 컬럼의 SAL을 기준으로 
+		  				   해당 값의 [SAL - 50, SAL + 150]인 컬럼의 갯수를 SUM_CNT로 COUNTING한다.
+		  			
+		  				   
+		4) 그룹 내 행 순서 함수
+			https://geniusjo.tistory.com/entry/%EC%9C%88%EB%8F%84%EC%9A%B0-%ED%95%A8%EC%88%98WINDOW-FUNCTION
+			
+			(1) FIRST_VALUE(SQL SERVER 지원 X)
+				- 파티션별 윈도우에서 가장 먼저 나온 값 출력
+				- MIN함수를 이용하여 같은 결과 얻을 수 있음
+				
+				EX.1) SELECT DEPTNO, ENAME, SAL, 
+						FIRST_VALUE(ENAME) 
+						OVER(PARTITION BY DEPTNO ORDER BY SAL DESC ROWS UNBOUNDED PRECEDING) 
+							AS DEPT_RICH
+					FROM EMP;
+						----------   ----------  ----------  ----------
+					   		 DEPTNO  ENAME              SAL  DEPT_RICH
+					    -----------  ----------  ----------  ----------
+						        10   KING              5000  KING
+						        10   CLARK             2450  KING
+						        10   MILLER            1300  KING
+						        20   SCOTT             3000  SCOTT
+						        20   FORD              3000  SCOTT
+						        20   JONES             2975  SCOTT
+						        20   ADAMS             1100  SCOTT
+						        20   SMITH              800  SCOTT
+						----------   ----------  ----------  ----------
+					
+					> 부서별로 연봉이 높은 순으로 정렬, 파티션내에서 가장 먼저 나온 값을 출력(파티션별 DEPT_RICH 임)
+					  단, ENAME 중 FORD와 SCOTT의 경우 SAL이 같음에도 먼저 출력된 SCOTT이 DEPT_RICH가 됨
+					  이런 경우 다음과 같이 ENAME 정렬을 의도적으로 변경한다.
+					  
+					  
+				 EX.2)  SELECT DEPTNO, ENAME, SAL
+						     , FIRST_VALUE(ENAME) OVER (PARTITION BY DEPTNO ORDER BY SAL DESC, ENAME ASC ROWS UNBOUNDED PRECEDING) as RICH_EMP
+						FROM EMP;
+						
+						FIRST_VALUE는 공동 등수를 인정하지 않고 처음 나온 행을 처리하기 때문에
+						이러한 경우 위와 같이 ENAME ASC로 정렬 기준을 변경하는 방법이 있다.
+						그 결과 EX.1)와 달리 FORD가 SCOTT보다 먼저 출력되어 동일 SAL의 경우 이름순으로 처리된다.
+						
+			
+			(2) LAST_VALUE
+				- 파티션별 윈도우에서 가장 나중에 나온 값 출력
+				- MAX함수를 이용하여 같은 결과를 얻음
+				- 공동 등수를 인정하지 않고, 가장 나중에 나온 행을 처리
+				
+				
+			(3) LAG 함수
+				- 파티션별 DOMAIN에서 해당 ROW의 이전 몇 번째 행의 값을 가져옴
+				- LAG 함수는 3개의 ARGS까지 사용할 수 있다. 
+				  첫 번째 인자는 LAG()함수가 처리할 정의역 컬럼이다.
+				  두 번째 인자는 현재 ROW의 몇 번째 이전의 행을 가져올지 결정한다.(DEFAULT 1)
+				  세 번째 인자는 예를 들어 파티션의 첫 번째 행의 경우 가져올 데이터가 없어 NULL 값이 들어오는데
+				  이 경우 다른 값으로 바꾸어 줄 수 있다. 결과적으로 NVL이나 ISNULL 기능과 같다.
+				  
+				  EX.1) SELECT ENAME, HIREDATE, SAL,
+				  			LAG(SAL) OVER(ORDER BY HIREDATE) AS PREV_SAL
+				  		FROM EMP;
+				  		
+				  		---------- --------- ---------- ----------
+						ENAME      HIREDATE         SAL   PREV_SAL
+						---------- --------- ---------- ----------
+						ALLEN      20-FEB-81       1600
+						WARD       22-FEB-81       1250       1600
+						TURNER     08-SEP-81       1500       1250
+						MARTIN     28-SEP-81       1250       1500
+						---------- --------- ---------- ----------
+						
+						
+					EX.2) <해당 ROW의 날짜 조건에서(ORDER BY 절) 2번 째 이전 조건에 해당하는 SAL값을 가져옴>
+					
+						 SELECT ENAME, HIREDATE, SAL
+						     , LAG(SAL, 2, 0) OVER (ORDER BY HIREDATE) as PREV_SAL 
+						 FROM EMP 
+						 WHERE JOB = 'SALESMAN' ;
+						
+						---------- --------- ---------- ----------
+						ENAME      HIREDATE         SAL   PREV_SAL
+						---------- --------- ---------- ----------
+						ALLEN      20-FEB-81       1600          0
+						WARD       22-FEB-81       1250          0
+						TURNER     08-SEP-81       1500       1600
+						MARTIN     28-SEP-81       1250       1250
+						---------- --------- ---------- ----------
+						
+			(4) LEAD 함수
+				- LEAD 함수를 이용해 파티션별 윈도우에서 이후 몇 번째 행의 값을 가져올 수 있다.
+				  LEAD 함수는 3개의 ARGUMENTS 까지 사용할 수 있는데,
+				  두 번째 인자는 몇 번째 후의 행을 가져올지 결정하는 것이고 (DEFAULT 1),
+			 	  세 번째 인자는 예를 들어 파티션의 마지막 행의 경우 가져올 데이터가 없어 NULL 값이 들어오는데
+			 	  이 경우 다른 값으로 바꾸어 줄 수 있다. 결과적으로 NVL이나 ISNULL 기능과 같다
+										
+				  		
+				  		 	
+								
+					
+			
+			
+		5) 그룹 내 행 비율 함수
+			설명 위주:	https://geniusjo.tistory.com/entry/%EC%9C%88%EB%8F%84%EC%9A%B0-%ED%95%A8%EC%88%98WINDOW-FUNCTION
+		    예제 위주 : http://www.gurubee.net/lecture/2382(원문 : http://wiki.gurubee.net/pages/viewpage.action?pageId=26744104)
+		    
+		    
+		 	3.11 RATIO_TO_REPORT 함수
+		 	RATIO_TO_REPORT 함수를 이용해 파티션 내 전체 SUM(칼럼)값에 대한 행별 칼럼 값의 백분율을 소수점으로 구할 수 있다.
+			결과 값은 > 0 & <= 1 의 범위를 가진다.
+			그리고 개별 RATIO의 합을 구하면 1이 된다. SQL Server에서는 지원하지 않는 함수이다.
+			예제) JOB이 SALESMAN인 사원들을 대상으로 전체 급여에서 본인이 차지하는 비율을 출력한다.
+			
+			
+			
+			SELECT ENAME, SAL
+			     , ROUND(RATIO_TO_REPORT(SAL) OVER (), 2) as R_R 
+			  FROM EMP 
+			 WHERE JOB = 'SALESMAN'; 
+			
+			ENAME             SAL        R_R
+			---------- ---------- ----------
+			ALLEN            1600        .29
+			WARD             1250        .22
+			MARTIN           1250        .22
+			TURNER           1500        .27
+			
+			
+			
+			
+			3.12 PERCENT_RANK 함수
+			PERCENT_RANK 함수를 이용해 파티션별 윈도우에서 제일 먼저 나오는 것을 0으로,
+			제일 늦게 나오는 것을 1로 하여, 값이 아닌 행의 순서별 백분율을 구한다.
+			결과 값은 >= 0 & <= 1 의 범위를 가진다. 참고로 SQL Server에서는 지원하지 않는 함수이다.
+			
+			
+			SELECT DEPTNO, ENAME, SAL
+			     , PERCENT_RANK() OVER (PARTITION BY DEPTNO ORDER BY SAL DESC) as P_R 
+			  FROM EMP; 
+			
+			    DEPTNO ENAME             SAL        P_R
+			---------- ---------- ---------- ----------
+			        10 KING             5000          0
+			        10 CLARK            2450         .5
+			        10 MILLER           1300          1
+			        20 SCOTT            3000          0
+			        20 FORD             3000          0
+			        20 JONES            2975         .5
+			        20 ADAMS            1100        .75
+			        20 SMITH             800          1
+			        30 BLAKE            2850          0
+			        30 ALLEN            1600         .2
+			        30 TURNER           1500         .4
+			        30 MARTIN           1250         .6
+			        30 WARD             1250         .6
+			        30 JAMES             950          1
+			
+			14 rows selected.
+			
+			
+			3.13 CUME_DIST 함수
+			CUME_DIST 함수를 이용해 파티션별 윈도우의 전체건수에서 현재 행보다 작거나 같은 건수에 대한 누적백분율을 구한다.
+			결과 값은 > 0 & <= 1 의 범위를 가진다. 참고로 SQL Server에서는 지원하지 않는 함수이다.
+			
+			
+			SELECT DEPTNO, ENAME, SAL
+			     , CUME_DIST() OVER (PARTITION BY DEPTNO ORDER BY SAL DESC) as CUME_DIST 
+			  FROM EMP; 
+			
+			    DEPTNO ENAME             SAL  CUME_DIST
+			---------- ---------- ---------- ----------
+			        10 KING             5000 .333333333
+			        10 CLARK            2450 .666666667
+			        10 MILLER           1300          1
+			        20 SCOTT            3000         .4
+			        20 FORD             3000         .4
+			        20 JONES            2975         .6
+			        20 ADAMS            1100         .8
+			        20 SMITH             800          1
+			        30 BLAKE            2850 .166666667
+			        30 ALLEN            1600 .333333333
+			        30 TURNER           1500         .5
+			        30 MARTIN           1250 .833333333
+			        30 WARD             1250 .833333333
+			        30 JAMES             950          1
+			
+			14 rows selected.
+			
+			
+			
+			
+			3.14 NTILE 함수
+			NTILE 함수를 이용해 파티션별 전체 건수를 ARGUMENT 값으로 N 등분한 결과를 구할 수 있다.
+			
+			
+			SELECT ENAME, SAL
+			     , NTILE(4) OVER (ORDER BY SAL DESC) as QUAR_TILE 
+			  FROM EMP ;
+			
+			ENAME             SAL  QUAR_TILE
+			---------- ---------- ----------
+			KING             5000          1
+			FORD             3000          1
+			SCOTT            3000          1
+			JONES            2975          1
+			BLAKE            2850          2
+			CLARK            2450          2
+			ALLEN            1600          2
+			TURNER           1500          2
+			MILLER           1300          3
+			WARD             1250          3
+			MARTIN           1250          3
+			ADAMS            1100          4
+			JAMES             950          4
+			SMITH             800          4
+			
+			전체 사원을 급여가 높은 순으로 정렬하고 급여를 기준으로 4개의 그룹으로 분류(NTILE(4)는 14 ROW를 4로 나눈다는 의미)
+			-> 14/4 = 3*4 + 2이며 나머지 값인 2는 앞의 조부터 할당(3+1), (3+1), 3, 3 이런 식으로 4개 조로 분류
+
+			
