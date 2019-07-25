@@ -1,0 +1,120 @@
+<9강 집계와 조건 분기>
+
+ - 집계를 수행하는 쿼리를 작성할 때 쓸데없이 길어지는 경우를 자주 접한다.
+
+	1. 집계 대상으로 조건 분기
+		
+		- 1.1) UNION을 사용법
+		  ex)지역별로 남녀 인구를 기록하는 Population 테이블구하기
+		  
+		  (원 테이블 구조 : prefecutre(지역명) / sex(성별) / pop(인구))
+		  
+		  	 원하는 결과 > prefecture / pop_men / pop_wom
+			 					A	  /   10    /    10
+		 
+			- 일반적으로 이러한 문제를 풀때 절차 지향적 사고방식을 가진다면, 일단 남성의 인구를 지역별로 
+			  구하고, 여성의 인구를 지역별로 구한뒤 머지하는 방식을 택한다.
+			 
+			  SELECT prefecture, SUM(pop_men) as pop_men, SUM(pop_wom) as pop_wom
+			  	FROM(
+			  	 SELECT prefecture, pop AS pop_men, null AS pop_wom
+			  	 FROM Population
+			  	 WHERE sex = '1'
+			  	 	UNION
+			  	 SELECT prefecture, null AS pop_men, pop AS pop_wom
+			  	 FROM Population
+			  	 WHERE sex = '2'
+			  	) TMP
+			  GROUP BY prefecture;
+			  
+			  위의 서브쿼리 TMP는 아래와 같이 남여의 레코드가 별로 나온다. 따라서, 외측에 있는 group by 구를 사용해 하나의 레코드로 집약해야 한다.
+			  물론, 아무 에러 없이 결과가 나온다. 
+			  하지만 이런 쿼리의 문제는 where 구에서 sex 필드로 분기를하고, 결과를 UNION으로 머지한다는 절차 지향적인 구성이다.
+			  ------------------------------ 
+			  prefecture / pop_men / pop_wom
+			  	성남	 /    10   /    
+			  	성남	 /         /    10
+			  	...
+			  -------------------------------
+			  
+			  
+		- 1.2) 집계의 조건 분기도 CASE 식을 사용 -->>> 1.1)보다 성능 향상
+			이 문제는 CASE 식의 응용 방법으로 굉장히 유명한 표측/표두 레이아웃 이동 문제입니다.
+			CASE식을 집약 함수 내부에 포함시켜서 여자와 남자 필터를 만든다.
+			
+			SELECT prefecture,
+				SUM(CASE WHEN sex = '1' THEN pop ELSE 0 END) AS pop_men,
+				SUM(CASE WHEN sex = '2' THEN pop ELSE 0 END) AS pop_wom
+			FROM Population
+			GROUP BY prefecture
+
+	
+	2. 집약 결과로 조건 분기	
+		- 집약에 조건 분기를 적용하는 또 하나의 패턴으로, 집약 결과에 조건 분기를 수행하는 경우가 있다.
+		  예를들어, 직원과 직원이 소속된 팀을 관리하는 테이블은 다음과 같다, Employee.
+	  	
+	  	직원 테이블
+	  	| emp_id(직원 아이디) | team_id(팀 ID) | emp_name(직원 이름) | team(팀) |
+	  			201					  A					Jhon			 DEV
+	  			202					  B					Tom				 R&D
+	  			201					  C					Jhon			 PLANNING
+	  			...
+	  			
+	  	ex) (1) 소속된 팀이 1개라면 해당 직원은 팀의 이름을 그대로 출력한다.
+	  		(2) 소속된 팀이 2개라면 해당 직원은 '2개를 겸무'라는 문자열을 출력
+	  		(3) 소속된 팀이 3개 이상이라면 해당 직원은 '3개 이상을 겸무'라는 문자열을 출력
+	  		
+	  		원하는 결과 > 	EMP_NAME    |   TEAM
+	  						----------------------------
+	  						JIM			|	개발
+	  						BREE		|	3개 이상겸무
+	  						JOE			|   2개 이상 겸무
+	  						TOM			|   기획
+	  		
+	  		- UNION을 이용한 분기 --->>> 직원을 조건 (1)~(3)에 따라 분류
+ 	  		 JIM, TOM을 (1) 기준으로 분류,
+	  		 JOE를 (2)기준으로 분류,
+	  		 BREE를 (3)기준으로 분류, 이를 코드로 구현
+	  		 
+		  	SELECT emp_name, MAX(team) AS team
+				FROM employees
+			  	GROUP BY emp_name
+			  	HAVING COUNT(*) = 1
+	  		 UNION
+		  		 SELECT emp_name, '2개를 겸무' AS team
+		  		 FROM employees
+		  		 GROUP BY emp_name
+		  		 HAVING COUNT(*) = 2
+	  		 UNION
+		  		 SELECT emp_name, '3개를 겸무' AS team
+		  		 FROM employees
+		  		 GROUP BY emp_name
+		  		 HAVING COUNT(*) = 3
+			이와 같은 코드는 조건 분기가 레코드 값이 아닌 집합의 레코드 수에 적용된다는 것이다.
+			즉, 조건 분기가 where구가 아니라 HAVING 구에 지정된다.
+			하지만, UNION으로 머지하고 있는 이상 구문 레벨의 분기일 뿐이다.
+			
+			>> 위의 코드를 CASE 분기식으로 이용해
+			SELECT emp_name, 
+				CASE WHEN COUNT(*) = 1 THEN MAX(team)
+					 WHEN COUNT(*) = 2 THEN '2개를 겸무'
+					 WHEN COUNT(*) = 3 THEN '3개를 겸무'
+	  			END AS team
+	  		FROM employees
+	  		GROUP BY emp_name;
+	  		
+	  		
+	  		
+	  		
+	  	
+	  	
+		
+		
+	  
+		  
+	  
+	  
+	  
+	  
+	    
+	

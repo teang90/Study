@@ -445,9 +445,27 @@ public class Network01 {
 					 	 			↓														    ↗
 					 	 - socketA (make new socket to give and take with clientSocket)--------↗
 					 	 
+					 	 
 					 	 ex) PracticeTcpIpServer02.java
+					 	 - Socket 클래스에 정의된 getPort()와 getLocalPort()를 사용해서 tcp/ip 통신에서 소켓이 사용하고 있는 포트를 알아낼 수 있다.
+					 	   getPort()가 반환하는 값은 상대편 소켓(원격 소켓)이 사용하는 포트이고 
+					 	   getLocalPort()가 반환하는 값은 소켓 자신이 사용하는 포트이다.
+					 	   
+					 	   결과에서 보면 연결을 요청한 클라이언트 프로그램의 소켓이 사용한 포트는 2839번이고(내 경우 63464) 서버 프로그램의 소켓은 7777
+					 	   이를 통해서 서버소켓이 7777번 포트를 사용해도 서버 소켓이 아닌 소켓은 7777번 포트를 사용할 수 있다는 것이다.
+					 	   
+					 	 
 					 	 ex) PracticeTcpIpServer03.java
+					 	 - ServerSocket클래스의 setSoTimeout(int timeout)을 사용해서 서버소켓의 대기시간을 지정할 수 있다.
+					 	   지정한 대기 시간 동안 연결 요청이 없을 경우 accept()에서 SocketTimeOutException이 발생하므로 catch를 적절히 사용해야한다.
+					 	 
+					 	  
 					 	 ex) PracticeTcpIpServer04.java
+					 	 - 여러개의 쓰레드를 생성하여 클라이언트의 요청을 동시에 처리하도록 하였다.
+					 	   서버에 접속하는 클라이언트의 수가 많을 때는 쓰레드를 이용해서 클라이언트의 요청을 병렬적으로 처리하는 것이 좋다.
+					 	   그렇지 않으면 서버가 접속을 요청한 순서대로 처리하기 때문에 늦게 접속을 요청한 클라이언트는 오랜 시간을 기다리게된다.
+					 	   
+					 	 
 					 	 ex) PracticeTcpIpServer05.java
 					 	 ex) PracticeTcpIpServer06.java(Multichat)
 					 	 
