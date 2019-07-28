@@ -467,7 +467,44 @@ public class Network01 {
 					 	   
 					 	 
 					 	 ex) PracticeTcpIpServer05.java
+						 - 소켓으로 데이터를 송신하는 작업과 수신하는 작업을 별도의
+						   쓰레드 Sender와 Receiver가 처리하도록 하여 송신과 수신이 동시에 이루어지도록 했다.
+						   서버 프로그램(PracticeTcpIpServer05)과 클라이언트(PracticeTcpIpClient05)의 화면에
+						   입력한 데이터가 상대방의 화면에 출력되므로 1:1 채팅이 가능하다.
+					 	 
 					 	 ex) PracticeTcpIpServer06.java(Multichat)
+					 	 - 멀티 채팅 프로그램 제작
+					 	 서버 프로그래밍에서 서버에 접속한 클라이언트를 hashMap에 저장해서 관리한다.
+					 	 클라이언트가 멀티채팅서버에 접속하면 hashMap에 저장되고 접속을 해제하면 hashMap에서 제거한다.
+					 	 클라이언트가 데이터를 입력하면 멀티채팅 서버에서는 hashMap에 저장된 모든 클라이언트에게 데이터를 전송한다.
+					 	 
+					 	 ...
+					 	 
+	3. UDP 소켓 프로그래밍
+		- TCP 소켓 프로그래밍은 Socket, serverSocket을 사용하지만, UDP 소켓 프로그래밍에서는 
+		  DatagramSocket, DatagramPacket을 사용한다.
+		  
+		  앞서 살펴본 것처럼 UDP는 연결지향적인 프로토콜이 아니기때문에 serverSocket이 필요없다.
+		  UDP통신에서 사용하는 소켓은 datagramsocket이며 데이터를 datagrampacket에 담아서 전송한다.
+		  datagrampacket은 헤더와 데이터로 구성되어있으며, 헤더에는 datagrampacket을 
+		  수신할 호스트의 정보(호스트 주소, 포트)가 저장되어 있다. 소포(packet)에 수신할 상대편의 주소를 
+		  적어서 보내는 것과 같다고 이해하면 된다.
+		  
+		  그래서 datagramoacket을 전송하면 datagrampacket에 지정된 주소(호스트의 포트)의 datagramSocket에 도착한다.
+		  
+		  ex) UdpClient, UdpServer
+		  서버로부터 서버시간을 전송바다아 출력하는 UDP 소켓 클라이언트와 서버 프로그램이다.
+		  클라이언트 datagrampacket을 생성해서 datagramsocket으로 서버에 전송하며, 서버는 전송받은 datagrampacket의
+		  getAddress(), getPort()를 호출해서 클라이언트의 정보를 얻어서 서버시간을 datagrampacket에 담아서 전송한다.
+		  
+		  
+		  
+		  
+		  
+		  
+		
+		
+					 	 
 					 	 
 					 	    
 					 	
