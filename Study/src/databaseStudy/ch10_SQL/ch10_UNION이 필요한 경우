@@ -24,6 +24,185 @@
 		   	   
 		   	   
 	2. UNION을 사용하는 것이 성능적으로 더 좋은 경우
+		인덱스 관련 경우 UNION을 사용했을 때 좋은 인덱스(압축을 잘 하는 인덱스)를 사용하지만,
+		이외의 경우에는 테이블 풀 스캔이 발생한다면, UNION을 사용한 방법이 성능적으로 더 좋을 수 있다.
+		
+		예를 들어, 3개의 날짜 필드 date_1 ~ date_3과 그것과 짝을 이루는 플래그 필드 flg_1 ~ fl_3을 가진 
+		테이블 ThreeElments를 생각해보자.
+		
+		key | name |   date_1   | flg_1 |  date_2  | flg_2 | date_3 | flg_3 |
+		 1		a		11-01       T
+		 2		b							11-01      T
+		 3		c							11-03      F
+		 4		d							12-15      T
+		 5		e											  11-01      T
+		 6		f										      12-15      F
+		 
+		위의 테이블에서 date_1 ~ date_3이 특정 날짜(예를 들어 11-01일)을 갖고 있고 이에 대응되는 플래그 필드의 
+		값이 T인 레코드를 선택한다고 하자(아래의 결과를 요청)
+		
+		key | name |   date_1   | flg_1 |  date_2  | flg_2 | date_3 | flg_3 |
+		 1		a		11-01       T
+		 2		b							11-01      T
+		 3		e											  11-01      T
+		 
+		- UNION을 사용한 방법
+		-------------------
+		
+		SELECT 
+			   key, name, date_1,
+			   date_1, flg_1,
+			   date_2, flg_2,
+			   date_3, flg_3,
+		FROM   
+			   threeElements
+		WHERE  
+			   date_1 = '11-01'
+			   AND flg_1 = 'T'
+	UNION
+
+	 	SELECT 
+			   key, name, date_1,
+			   date_1, flg_1,
+			   date_2, flg_2,
+			   date_3, flg_3,
+		FROM   
+			   threeElements
+		WHERE  
+			   date_2 = '11-01'
+			   AND flg_2 = 'T'
+	UNION
 	
+		SELECT 
+			   key, name, date_1,
+			   date_1, flg_1,
+			   date_2, flg_2,
+			   date_3, flg_3,
+		FROM   
+			   threeElements
+		WHERE  
+			   date_3 = '11-01'
+			   AND flg_3 = 'T'
+		
+		-> 3회의 인덱스 스캔 발생	   
+		
+	 	
+		-----------------------------------------------------------------------
+		- OR을 이용한 방법: UNION을 사용하지 않고 OR을 이용하여 문제를 풀어보자
+		-----------------------------------------------------------------------
+		SELECT 
+			   key, name, date_1,
+			   date_1, flg_1,
+			   date_2, flg_2,
+			   date_3, flg_3,
+		FROM   
+			   threeElements
+		WHERE  
+			   (date_1 = '11-01' AND flg_1 ='T')			
+		   OR  (date_2 = '11-01' AND flg_2 ='T')			
+		   OR  (date_3 = '11-01' AND flg_3 ='T')
+		  
+		  위의 경우 인덱스를 사용하지 않고, 테이블 풀 스캔이 진행됨		
+		  
+		  
+		
+		-----------------------------------------------------------------------
+		- IN을 이용한 방법: UNION을 사용하지 않고 IN을 이용하여 문제를 풀어보자
+		-----------------------------------------------------------------------
+		SELECT 
+			   key, name, date_1,
+			   date_1, flg_1,
+			   date_2, flg_2,
+			   date_3, flg_3,
+		FROM   
+			   threeElements
+		WHERE  
+			   ('11-01', 'T')
+			   IN
+			   ((date_1 = '11-01' AND flg_1 ='T') 			
+		   	   ,(date_2 = '11-01' AND flg_2 ='T')			
+		   	   ,(date_3 = '11-01' AND flg_3 ='T'))
+		   	  
+		-> 이러한 방식은 다중 필드(멀티플 필드 또는 행식(row expression))라는 기능을 사용한 방법이다.
+		IN의 매개변수로는 단순한 스칼라뿐만 아니라
+		이렇게(a,b,c)와 같은 값의 리스트(배열)을 입력할 수도 있다.
+		
+		
+		---------------------------------------------------------------------------
+		- CASE를 이용한 방법: UNION을 사용하지 않고 CASE를 이용하여 문제를 풀어보자
+		---------------------------------------------------------------------------
+		-   case문은 select part와 where part에서 적용방식이 다르다
+			아래의 쿼리의 예제는 where에서 case문을 사용한 경우이다.
+			이 경우 case ~ end 사이의 when문은 OR상태로 합집합으로 엮인다.
+			
+			하지만 만약 아래와 같은 case문을 select part에 사용한다면
+			case ~ end 사이의 when ~ then 여러개의 when문이 반복되면 
+			if{} else if{} else if{}식으로 적용되며 결과 도출은 하나의 컬럼에 대응되는
+			하나의 결과 값만 반환한다
+			(어찌보면 select 파트에서는 하나의 결과만 반환해야하기 때문에 당연한 개념이다).
+			즉, select에서는 case end는 하나의 컬럼에 대응하고(case~end 사이의) 
+			분기문의 성질로 엮이게 된다.
+		
+		SELECT 
+			   key, name, date_1,
+			   date_1, flg_1,
+			   date_2, flg_2,
+			   date_3, flg_3,
+		FROM   
+			   threeElements
+		WHERE
+			   CASE WHEN date_1 = '11-01' THEN flg_1 			
+			   		WHEN date_2 = '11-01' THEN flg_2 			
+			   		WHEN date_3 = '11-01' THEN flg_3
+					ELSE NULL END ='T'
+			
+		- 해당 내용을 select 구에 적용한 경우				   	  
+							   	  
+		1)	SELECT
+				CASE WHEN KEY IS NOT NULL
+				     THEN date1
+				     end,
+				case WHEN KEY IS NOT NULL
+				     THEN date2
+				     end
+		     FROM
+				three_elements
+
+
+		2) SELECT
+				CASE WHEN key = '10'
+				     THEN date1 
+				     WHEN key IS NOT NULL
+				     THEN date2 
+				end
+		     FROM
+				three_elements
+		     
+		-> 이러한 방식은 다중 필드(멀티플 필드 또는 행식(row expression))라는 기능을 사용한 방법이다.
+		IN의 매개변수로는 단순한 스칼라뿐만 아니라
+		이렇게(a,b,c)와 같은 값의 리스트(배열)을 입력할 수도 있다.
+		
+		-----------------------------------------------------------------------------------------
+		
+	
+		
+		
+		
+		  
+		
+		
+					
+			
+		
+		
+		
+		
+		
+			   
+		 
+		 
+		
+ 		
+		 
 	
 		
