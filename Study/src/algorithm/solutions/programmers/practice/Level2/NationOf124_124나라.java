@@ -56,3 +56,25 @@ public class NationOf124_124나라 {
 //      return answer;
 //  }
 //}
+//
+
+// 출처 : https://cnwlcjf.tistory.com/64
+//public String solution(int n) {
+//	String answer ="";
+//	int reminder ;
+//	while (n>0) {
+//		reminder = n%3;
+//		n=n/3;
+//		
+//		
+//		if (reminder==0) {
+//			n -= 1;
+//			reminder=4;
+//		}
+//		
+//		answer = reminder + answer;
+//		
+//	}
+//	return answer;
+//}
+

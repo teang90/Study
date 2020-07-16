@@ -50,21 +50,20 @@ public class Palindrome {
 				if (oneChar == s.charAt(j)) {
 					charArray[i]=oneChar;
 					charArray[j]=oneChar;
-				}
-				
-				if (i!=0 && i!=s.length() && 65<=charArray[i-1] && charArray[i-1]<=122 && charArray[i-1]==charArray[i+1])
+				}else if (i!=0 && i!=s.length() && 65<=charArray[i-1] && charArray[i-1]<=122 && charArray[i-1]==charArray[i+1]) {
 					charArray[i]=oneChar;
+				}
 			}
 		}
 		
+		System.out.println(charArray);
 		String beResult = String.valueOf(charArray);
+		System.out.println("beR : "+beResult);
 		String[] result = beResult.split(" ");
+		Arrays.stream(result).map(x->x.length()).sorted().forEach(x->System.out.println("x:"+x));
+//		Stream<Integer> lengthArr = Arrays.stream(result).map(x->x.length()).sorted().forEach(x->System.out.println(x));
+		
 //		Stream<Integer> arrStream = Arrays.stream(result, 0,1);
-//		for (int i = 0; i < result.length; i++) {
-//			if (condition) {
-//				
-//			}
-//		}
 		
 		System.out.println(String.valueOf(charArray));
 		// 둘의 위치가 대칭적이라면 사이의 문자도 동일하게 적용
