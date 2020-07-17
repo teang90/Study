@@ -1,7 +1,6 @@
 package algorithm.solutions.programmers.practice.Level3;
 
 import java.util.Arrays;
-import java.util.stream.Stream;
 
 /**
  * 
@@ -31,13 +30,17 @@ public class Palindrome {
 
 	public static void main(String[] args) {
 		String str = "abacdeffe";
-//		String str = "abada";
+//		String str = "aba";
+//		String str = "abcde";
 //		String str = "abcdcba";
+//		String str = "abacde";
 		System.out.println(solution(str));
 	}
-
+	
+	// TODO type conversion char -> String
 	public static int solution(String s) {
 		int answer = 0;
+		
 		// 전체 길이를 측정
 		int sLeng = s.length();	
 		char[] charArray = new char[sLeng];
@@ -52,24 +55,30 @@ public class Palindrome {
 					charArray[j]=oneChar;
 				}
 				
-				if (i!=0 && i!=s.length() && 65<=charArray[i-1] && charArray[i-1]<=122 && charArray[i-1]==charArray[i+1])
+				if (i!=0 && i!=s.length() && charArray[i-1]==charArray[i+1] && 65<=charArray[i-1] && charArray[i-1]<=122)
 					charArray[i]=oneChar;
 			}
 		}
 		
-		String beResult = String.valueOf(charArray);
-		String[] result = beResult.split(" ");
-//		Stream<Integer> arrStream = Arrays.stream(result, 0,1);
-//		for (int i = 0; i < result.length; i++) {
-//			if (condition) {
-//				
-//			}
-//		}
-		
-		System.out.println(String.valueOf(charArray));
-		// 둘의 위치가 대칭적이라면 사이의 문자도 동일하게 적용
-
-		return answer;
+		System.out.println(charArray);
+		String[] result = String.valueOf(charArray).split("-");
+		for (int i = 0; i < new String(charArray).length(); i++) {
+			String a = String.valueOf(charArray[i]);
+			if (a.isEmpty()) {
+				System.out.println("dalkdj");
+			}
+		}
+		int[] intRes = new int[result.length];
+		int cnt = 0;
+		for (int i = 0; i < result.length; i++) {
+			System.out.println(result[i]);
+			if (result[i].length() > 1) {
+				intRes[cnt]=result[i].length();
+				cnt++;
+			}
+		}
+		Arrays.sort(intRes);
+		return intRes[0];
 	}
 	
 }
