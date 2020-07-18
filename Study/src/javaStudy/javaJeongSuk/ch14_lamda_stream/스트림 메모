@@ -1,0 +1,260 @@
+[스트림]
+
+1. 배경
+	
+	 스트림은 데이터 소스를 추상화하고, 데이터를 다루는데 자주 사용되는 매소드들을 정의했다.
+	데이터 소스(컬렉션, 배열, 파일 등)의 추상화는 데이터 소스가 무엇이든 같은 방식으로 다룰 수 있고, 
+	코드의 재사용성이 높다는 것을 의미한다.
+	
+	ex.1) 데이터 소스를 다루는 방법을 jdk 8 이전 방식과 stream을 이용한 방식의 차이를 알아보자
+		String[] strArr = {"aaa", "bbb", "ccc"};
+		List<String> strList = Arrays.asList(strArr);
+		
+		Array.sort(strArra);
+		for(String str : strArr)
+			System.out.println(str);
+				
+		Collections.sort(strList);
+		for(String str : strList)
+			System.out.println(str);
+		
+		
+		위의 두 데이터 소스를 스트림으로 생성 및 정렬/출력하는 방법은 아래와 같다.
+		-> Stream<String> strStream1 = strList.stream();
+		-> Stream<String> strStream2 = Arrays.stream(strArr);
+		
+		-> strStream1.sorted().forEach(System.out::println);
+		-> strStream2.sorted().forEach(System.out::println);
+	
+	※ 유의사항
+	
+	1) 스트림은 데이터 소스를 변경하지 않는다.
+	 스트림은 데이터 소스로 부터 데이터를 읽기만 할 뿐 데이터 소스를 변경하지 않는다. 
+	필요하다면 정렬된 결과를 컬렉션이나 배열에 담아 반환할 수도 있다.
+	 
+	 ex) List<String> sortedList = strStream2.sorted().collect(Collections.toList());
+	 
+	2) 스트림은 일회용이다.
+	 스트림은 iterator와 같이 일회용이다. Iterator로 컬렉션의 요소를 모두 읽고 나면 다시 사용할 수 없는 것처럼
+	스트림도 한번 사용하면 다시 사용할 수 없다. 필요하다면 스트림을 다시 생성해야한다.
+	 
+	 ex) 
+	  strStream1.sorted().forEach(System.out::println);
+	  int numOfStr = strStream1.count(); // 에러 -> 이미 스트림을 사용하여 닫혔음
+	
+	3) 스트림은 작업을 내부 반복으로 처리한다.
+	 스트림을 이용한 작업이 간결할 수 있는 비결 중의 하나가 '내부 반복'이다.
+	내부 반복은 반복문을 메소드 내부에 숨길 수 있다는 것이다.
+	forEach()는 스트림에 정의된 메소드 중에 하나의 매개변수에 대입된 람다식을 데이터 소스의 모든 요소에 적용한다.
+	즉, forEach()는 메소드 내에 for문을 넣은것이고, 수행할 작업은 매개변수로 받는다.
+	 
+	 void forEach(Consumer<? super T> action){
+	 	Objects.requireNonNull(action); // null chk
+	 	for(T t : src) action.accept(T);
+	 }
+
+
+2. 연산(operation)
+
+	 스트림의 연산은 중간, 최종연산으로 나뉜다. 
+	중간연산은 연산결과를 스트림을 반환하기 때문에 중간 연산을 연속해서 연결할 수 있지만, 
+	최종 연산은 스트림의 요소를 소모하면서 연산을 수행하므로 단 한 번만 연산이 가능하다.
+	(※ 모든 중간연산의 결과는 스트림이지만, 연산 전의 스트림과 동일하지 않다.)
+	
+	ex) stream.distinct().limit(5).sorted().forEach(System.out::println);
+		-> forEach()전까지 중간연산, 이후로는 최종연산
+	
+	<중간연산> -> map, flatMap 중요
+		Stream<T> distinct() 										| 중복 요소 제거
+		Stream<T> filter(Predicate<T> predicate) 					| 조건에 안 맞는 요소 제외
+		Stream<T> limit(long maxSize) 								| 스트림 요소의 갯수를 일부만(size개) 잘라낸다.
+		Stream<T> skip(long n) 										| 스트림 요소의 갯수를 일부만(size개) 건너뛴다.
+		Stream<T> sorted(), sorted(Consumer<T> action)				| 스트림 요소 정렬
+		Stream<T> peek(Consumer<T> action) 							| 스트림 요소 대상으로 작업 수행
+		
+		map*(..)													| 스트림의 요소를 변환, 작업
+		Stream<R> map(Function<T,R> mapper) 						
+		DoubleStream mapToDouble(ToDoubleFunction<T> mapper) 		
+		IntStream mapToInt(ToIntFunction<T> mapper)
+		LongStream mapToLong(ToLongFunction<T> mapper)
+		
+		flatMap*(..) 												| 스트림의 요소를 변환, 작업
+		Stream<R> flatMap(Function<T,Stream<R>> mapper)
+		DoubleStream flatMapToDouble(ToDoubleFunction<T, DoubleStream> mapper) 		
+		IntStream flatMapToInt(ToIntFunction<T, IntStream> mapper) 		
+		LongStream flatMapToLong(ToLongFunction<T, LongStream> mapper) 		
+	
+	
+	<최종 연산> -> reduce, collect 중요
+		void forEach(Consumer<? super T> action)			| 각 요소에 지정된 작업 수행
+		void forEachOrdered(Consumer<? super T> action)		| 각 요소에 지정된 작업 수행
+		long count()										| 스트림 요소의 개수 반환
+		Optional<T> max(Comparator<? super T> comparator)	| 스트림의 최대값 반환
+		Optional<T> min(Comparator<? super T> comparator)	| 스트림의 최소값 반환
+		Optional<T> findAny()								| 스트림의 요소 하나 반환(아무거나 하나의 요소)
+		Optional<T> findFirst()								| 스트림의 요소 하나 반환(첫 번째 요소)
+		
+		boolean allMatch(Predicate<T> p)					| 주어진 조건을 모든 요소가 만족하는지 chk
+		boolean anyMatch(Predicate<T> p)					| 주어진 조건을 요소 하나라도 만족하는지 chk
+		boolean noneMatch(Predicate<T> p)					| 주어진 조건을 모든 요소가 만족하지 않는지 chk
+		
+		Object[] toArray()									| 스트림의 모든 요소를 배열로 반환
+		A[] toArray(IntFunction<A[]> generator)				| 스트림의 모든 요소를 배열로 반환
+		
+		Optional<T> reduce(BinaryOperator<T> accumulator)   | 스트림의 요소를 하나씩 줄여가며(리듀싱) 계산한다.
+		T reduce(T identity, BinaryOperator<T> accumulator) | 스트림의 요소를 하나씩 줄여가며(리듀싱) 계산한다.
+		U reduce(U identity,								| 스트림의 요소를 하나씩 줄여가며(리듀싱) 계산한다. 
+				BiFunction<U,T,U> accumulator, 
+				BinaryOperator<U> combiner) 
+		
+		R collect(Collector<T,A,R> collector) 				| 스트림의 요소 수집, 주로 요소를 그룹화, 분할한  
+															  결과를 컬렉션에 담아 반환할때 사용
+		R collect(Supplier<R> supplier,						 
+				  BiConsumer<R,T> accmulator, 
+				  BiConsumer<R,R> combiner) 				| 스트림의 요소 수집, 주로 요소를 그룹화, 분할한  
+															  결과를 컬렉션에 담아 반환할때 사용
+															  
+	- 지연된 연산
+	 스트림 연산에서 한 가지 중요한 점은 최종 연산이 수행되기 전까지 중간연산이 수행되지 않는다는 것이다.
+	 (-> 스트림에 대해 distinct(), sorted() 같은 중간 연산을 호출해도 즉각적인 연산이 수행되지 않음)
+	중간 연산을 호출하는 것은 단지 어떤 작업이 수행되어야하는지를 지정해주는 것일 뿐이며, 
+	최종연산이 수행되어야 비로소 스트림의 요소들이 중간 연산을 거쳐 최종 연산에서 소모된다.
+	
+	- Stream<Integer>와 IntStream 차이
+	 요소의 타입이 T인 스트림은 기본적으로 Stream<T>이지만 오토박싱&언박싱으로 인한 비효율을 줄이기 위해 
+	데이터 소스의 요소를 기본형으로 다루는 스트림, IntStream, Long..., Double...이 제공된다.
+	일반적으로 Stream<Integer>대신 IntStream을 사용한것이 더 효율적이며, 
+	IntStream에는 int 타입의 값으로 작업하는데 있어 유용한 메소드들이 포함되어있다.
+	
+	- 병렬 스트림
+	 스트림으로 데이터 처리 시 병렬 처리가 쉽다는 장점이 있다. 
+	스레드의 join&fork 프레임워크로  작업을 병렬처리를 할 수 있었다. 
+	병렬 스트림은 내부적으로 이 프레임웍을 이용해서 자동적으로 연산을 병렬로 수행한다. 
+	병렬 스트림을 위해서 사용자는 일반 스트림 대신 parallelStream()을 호출하면 된다. 
+	반대로, 병렬처리를 하지 않기(병렬처리 취소) 위해서는 sequential()을 호출하면 된다.
+	
+	ex) int sum = strStream.parallelStream().mapToInt(s->s.length()).sum(); 
+
+
+3. 스트림 생성
+	
+	- 컬렉션
+	컬렉션의 최고 조상인 Collection에 stream이 정의되어 있다. 따라서 List, Set을 구현한 클래스는 
+	모두 stream을 생성할 수 있다.
+	stream()은 해당 컬렉션을 소스로하는 스트림을 반환한다.
+ 
+	ex)	List<Integer> list = Arrays.asList(1,2,3,4,5);  // 가변인자
+		Stream<Integer> intStream = list.stream();		// list를 소스로 하는 컬렉션 생성
+		
+	forEach()는 지정된 작업을 스트림의 모든 요소에 대해 수행한다(데이터 소스를 소모 X, 생성된 스트림의 요소 사용 O).
+	intStream.forEach(System.out::println); 			// intStream 모든 요소 출력, 스트림 한번만 사용 가능
+	
+	- 배열
+	배열을 데이터 소스로 스트림을 생성하는 메소드는 Stream과 Arrays에 static 메소드로 정의되어있다.
+	Stream<T> Stream.of(T... values) // 가변인자 // ex) Stream<String> exStream = Stream.of("a","b","c"); 
+	Stream<T> Stream.of(T[]) 		 			 // ex) Stream<String> exStream = Stream.of(new Stringp[]{"a","b","c"});
+	Stream<T> Arrays.stream(T[])				 // ex) Stream<String> exStream = Arrays.stream(new Stringp[]{"a","b","c"});
+	Stream<T> Arrays.stream(T[] array, int startIndex, int endIndex)
+	
+	IntStream IntStream.of(int... values || int[])	 
+	IntStream Arrys.stream(int[])
+	
+	- 특정 범위의 정수
+	IntStream, LongStream은 지정된 범위의 연속된 정수를 스트림으로 생성해서 반환하는 range(), rangeClosed()를 갖고 있다.
+	IntStream  IntStream.range(int begin, int end) 			// IntStream intStream = range(1, 5)      -> 1,2,3,4
+	IntStream  IntStream.rangeClosed(int begin, int end)	// IntStream intStream = rangeClosed(1,5) -> 1,2,3,4,5
+	
+	- 임의의 수
+	난수 생성 시 사용하는 Random 클래스에는 int, long, double 타입의 나수로 이루어진 스트림을 반환한다.
+	
+	※ 난수 생성 메소드는 크기 제한이 없는 무한 스트림을 발생시키기 때문에 limit() 혹은 매개변수를 통해 크기를 제한해줘야한다.
+	ex) IntStream randomlyIntStream = new Random().ints().limit(10).forEach(System.out::println); // 10개 난수 스트림
+		IntStream randomlyIntStream = new Random().ints(10).forEach(System.out::println);	// 10개 난수 스트림
+		IntStream randomlyIntStream = new Random().ints(1,5).forEach(System.out::println);  // [1,4] 내의 난수 스트림
+		
+	- 람다식 : iterate(), generate()
+	Stream 클래스의 iterate(), generate()는 람다식을 매개변수로 받아서
+	람다식에 의해 계산되는 결과를 요소로하는 무한 스트림을 생성한다.
+	
+	static <T> Stream<T> iterate(T seed, UnaryOperator<T> f)
+	-> iterate()는 씨앗값(seed)로 지정된 값부터 시작하여 람다식 f에 의해 
+	   계산된 결과를 다시 seed값으로 해서 계산을 반복한다.
+		
+	ex) 아래의 evenStream은 0부터 시작해서 값이 2씩 증가한다.
+		Stream<Integer> evenStream = Stream.iterate(0, n->n+2); // 0, 2, 4, 6, ...
+		   
+	static <T> Stream<T> generate(Supplier<T> s)
+	-> generate도 iterate()와 같이, 람다식에 의해 계산되는 값을 요소로 하는 무한스트림을 생성하지만, 
+	   iterate()와는 달리 이전 결과를 다음 요소의 소스(seed)로 사용하지 않는다.
+	   
+	   또한, generate()의 매개변수의 타입은 Supplier<T> 이므로 매개변수가 없는 람다식만 허용된다.
+	   한 가지 주의점은 iterate()와 generate()에 의해 생성된 스트림을 
+	   아래와 같이 기본형 스트림 타입의 참조변수로 다룰 수 없다. 
+
+	   IntStream evenStream = Stream.iterate(0, n->n+2); 
+	   // 에러	-> Stream<Integer>로 받거나 OR .mapToInt(Integer::valueOf)로 후처리 필요
+	   // IntStream 타입의 스트림을 Stream<Integer>로 타입변환하려면 boxed()를 사용하자(IntStream->Stream<Integer>)
+
+	   DoubleStream randomStream = Stream.generate(Math::random); // 에러 -> Stream<Double>로 받아야 할듯
+
+	- 파일
+	java.nio.file.Files는 파일을 다루는데 유용한 여러 메소드를 제공한다. 
+	list()의 경우 지정된 디렉토리의 파일 목록을 소스로하는 스트림을 반환한다. ex) Stream<Path> File.list(Path dir)
+	
+	파일의 한 행을 요소로하는 스트림을 생성하는 메소드 BufferedReader 클래스의 Stream<String> lines() 
+	
+	- 빈 스트림
+	요소가 없는 빈 스트림 생성하며, 스트림에 연산 수행 결과가 하나도 없을때 null 대신 빈 스트림을 반환할 때 유용하다
+	Stream emptyStream = Streama.empty();  // empty는 빈 스트림을 생성해서 반환한다.
+	long count = emptyStream.count();	   // 0 반환
+	
+	- 두 스트림 연결
+	Stream의 static 메소드인 concat()은 두 스트림을 하나로 연결할 수 있다. 이때 두 스트림의 요소는 동일한 타입이어야한다.
+	String[] str1 = {"123", "444", "567"};
+	String[] str2 = {"abc", "ddd", "fea"};
+	
+	Stream<String> strStream1 = Stream.of(str1);
+	Stream<String> strStream2 = Stream.of(str2);
+	Stream<String> strStream3 = Stream.concat(str1, str2);
+	
+
+4. 스트림 중간 연산
+
+	- 스트림 자르기 : skip(), limit()
+	skip(a)  : 처음 a개의 요소를 건너뛴 요소를 스트림에 담아 반환한다.
+	limit(a) : 요소의 갯수를 a로 제한한 스트림을 반환
+	
+	ex) IntStream intStream = IntStream.range(1,10);
+		intStream.skip(3).limit(5).forEach(System.out::println); // 4,5,6,7,8 요소 출력
+		
+	- 스트림의 요소 걸러내기 : filter(), distinct()
+	distinct()는 스트림에서 중복된 요소들을 제거하고, fiter()는 주어진 조건(Predicate)에 맞지 않는 요소를 걸러낸다.
+	
+	ex) IntStream intStream = IntStream.of(1,2,2,5,5,5,6,6,6,7,7);
+		intStream.distinct().forEach(System.out::println); 			// 1,2,5,6,7
+		
+	filter()는 매개변수로 Predicate를 필요하다. 아래와 같이 연산 결과가 boolean인 람다식을 사용해도 된다.
+	ex) IntStream intStream = IntStream.rangeClosed(1,10); 			// 1~10
+		intStream.filter(i->i%2==0).forEach(System.out::println); 	// 2,4,6,8,10
+		
+		// filter를 여러번 적용할 수 있음 or 다중 조건을 적용할 수도 있음
+		intStream.filter(i->i%2==0).filter(i->i%3==0).forEach(System.out::println); // 6
+		intStream.filter(i->i%2==0 && i%3==0).forEach(System.out::println); 		// 6
+	
+	- 정렬 : sorted()
+	sorted()는 지정된 Comparator로 스트림을 정렬하는데, Comparator 대신 int 값을 반환하는 람다식으로도 사용할 수 있다.
+	Comparator를 지정하지 않으면 스트림 요소의 기본 정렬기준(Comparable)로 정렬한다.
+	단, 스트림의 요소가 Comparable을 구현한 클래스가 아니면 예외가 발생한다.
+	
+	ex) Stream<String> strStream = Stream.of("dd", "aa", "cc", "AA", "e");
+	strStream.sorted().forEach(System.out::print); AAaaccdde
+	
+	※ 자바의 정석 p824~826 -> sorted 기준으로 사용할 수 있는 comparator 인터이스의 다양한 메소드 소개
+	ex) exampleStream.sorted(Comparator.comparing(Student::name)
+										.thenComparing(Student::number)
+										.thenComparing(Student::height)).forEach(System.out::println);
+										
+	- 변환
+	
+	
+	
