@@ -22,7 +22,8 @@ public class Strategy {
 	 * 						  ---> starategy Interface -->  each implements Class
 	 */
 
-	//  전략패턴 - 필요한 전략(알고리즘, 조건, 상태, 상황)에 따라, 그에 맞는 로직을 타게해준다.
+	// 전략패턴 - 필요한 전략(알고리즘, 조건, 상태, 상황)에 따라, 그에 맞는 로직을 타게해준다.
+	// 분기 및 구분에 따라서 StrategyInterface 인터페이스를 구현한 클래스로 mapping 시키는 전략
 	public static void main(String[] args) {
 		Strategy s = new Strategy();
 		
