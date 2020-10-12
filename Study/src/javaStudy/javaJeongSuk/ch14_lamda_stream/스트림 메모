@@ -860,11 +860,104 @@
 			// Student의 toString()으로 결합
 			String studentInfo = stuStream.collect(joining(","));
 	
-	예) StreamEx_6	
+	예) StreamEx_6
+		
+	5) 그룹화와 분할 - groupingBy(), partitioningBy()
+		
+		그룹화는 스트림의 요소를 특정 기준으로 그룹화하는 것을 의미하고,  
+		분할은 스트림의 요소를 두 가지, 지정된 조건에 일치하는 그룹과 일치하지 않는 그룹으로의 분할을 의미한다.
+		아래의 메소드 정의에서 알 수 있듯이, groupingBy()는 스트림의 요소를 Function으로, partitionBy()는 Predicate로 분류한다. 
+		
+			Collect groupingBy(Function classifier)
+			Collect groupingBy(Function classifier, Collector downstream)
+			Collect groupingBy(Function classifier, Supplier mapFactory, Collector downstream)
+		
+			Collector partitioningBy(Predicate predicate)		
+			Collector partitioningBy(Predicate predicate, Collector downstream)		
+		
+		메소드의 정의를 보면 groupingBy()와 partitioningBy()가 분류를 Function으로 하느냐 Predicate(boolean 타입)로 하느냐의 차이마나 있을 뿐 동일하다는 것을 알 수 있다.
+		스트림을 두 개의 그룹으로 나눠야한다면, 당연히 partitioningBy()로 분할 하는 것이 더 빠르다.
+		그외에는 groupingBy()를 쓰면 된다. 그리고 그룹화와 분할의 결과는 Map에 담겨 반환된다.
+	
+	5.1) partitioningBy()에 의한 분류
+		
+		예) StreamEx_7
+	
+	5.2) groupingBy()에 의한 분류
+		
+		예) StreamEx_8
+	
+	
+		 
+	 
 	------------------------------------------------------------------------------------------------------------------------	
 		
+	- Collector 구현하기
+	여태까지 Collectors클래스가 제공하는 컬렉터를 사용하는 방법에 대해서 알아보았다. 이제부터는 직접 컬렉터를 작성할 것인데, 이는 Collector 인터페이스를 수현한다는 것을 의미한다.
+	Collector 인터페이스는 다음과 같이 정의되어 있다.
+	
+		public interface Collector<T, A, R>{
+			Supplier<A> 		supplier();
+			BiConsumer<A,T> 	accumulator();
+			BinaryOperator<A> 	combiner();
+			Function<A,R> 		finisher();
+			
+			Set<Characteristics> characteristics(); // -> 캐릭터의 특성이 담긴 Set을 반환 
+			...
+		}
+		
+	직접 구현해야하는 것은 위 5개의 메소드이다. characteristics()를 제외하면 모두 반환 타입의 함수형 인터페이스이다. 즉 4대의 람다식을 작성하면 된다.
+	
+		- supplier()		작업 결과를 저장할 공간을 제공
+		- accumulator()		스트림의 요소를 수집(collect)할 방법을 제공
+		- combiner()		두 저장 공간을 병합할 방법 제공(병렬스트림)
+		- finisher()		결과를 최종적으로 변환할 방법 제공
+	
+	supplier()는 수집 결과를 저장할 공간을 제공하기 위한 것이고, 
+	accumulator()는 스트림의 요소를 어떻게 supplier()가 제공한 공간에 누적할 것인지를 정한다.
+	combiner()는 병렬 스트림인 경우 여러 스레드에 의해 처리된 결과를 어떻게 합칠 것인가를 정의한다.
+	finisher()는 작업 결과를 변환하는 일을하며, 변환이 필요없을 경우, 항등함수 Function.identity()를 반환하면 된다.
+
+		public Function finisher(){
+			return Function.indentity(); // 항등함수를 반환, return x -> x; 와 동일
+		}	
 	
 	
+	마지막으로 characteristics()는 컬렉터가 수행하는 작업의 속성에 대한 정보를 제공하기 위한 것이다.
+	
+		Characteristics.CONCURRENT			병렬로 처리할 수 있는 작업
+		Characteristics.UNORDERED			스트림의 요소의 순서가 유지될 필요가 없는 작업
+		Characteristics.IDENTITY_FINISH		finisher()가 항등 함수인 작업
+	
+	(※) 열거형 Characteristics는 Collector 내에 정의되어있다.)
+	위의 3가지 속성 중 해당하는 것을 다음과 같이 Set에 담아서 반환하도록 구현하면 된다.
+	
+		public Set<Characteristics> characteristics(){
+			return Collections.unmodifiableSet(EnumSet.of(
+					Collector.Characteristics.CONCURRENT,
+					Collector.Characteristics.UNORDERED));
+		}		
+	
+	만일 아무 속성도 지정하고 싶지 않다면, 아래와 같이 정의한다.
+		
+		Set<Characteristics> characteristics(){
+			return Collections.emptySet();		// -> 지정할 특성이 없는 경우 빈 Set 반환
+		}
+	
+	finisher()를 제외하고 supplier(), accumulator(), combiner()는 모두 앞서 리듀싱에 대해서 배울 때 등장했던 개념이다.
+	결국 Collctor도 내부적으로 처리하는 과정이 리듀싱과 같다는 것을 의미한다.
+	IntStream의 count(), sum(), max(), min()등이 reduce()로 구현되어 있다는 것을 기억할 것이다. 그리고, collect()로도 count()등의 메소드와 같은 일을 할 수 있었다.
+		
+		long count  = stuStream.count();
+		long count2 = stuStream.collect(Collectors.counting());
 	
 	
-	------------------------------------------------------------------------------------------------------------------------	
+	▶▷▶▷▶▷ reduce()와 collect()의 차이 	◁◀◁◀◁◀r  
+	둘은 근본적으로 하는 역할은 동일하다. collect()는 그룹화, 분할, 집계에 유용하게 쓰이고, 병렬화에있어 reduce()보다 collect()가 더 유리하다.
+	결론적으로 reduce()를 잘 이해했다면, Collector를 구현하기에 큰 어려움은 없을 것이다.
+	
+	예제) 문자열을 결합하는 예제를 ConcatCollector를 작성할 것 -> StreamEx_9
+	------------------------------------------------------------------------------------------------------------------------
+	
+	
+		
