@@ -3,6 +3,11 @@ package javaStudy.Youtube.lamda;
 import org.omg.PortableInterceptor.Interceptor;
 
 public class Lamda1 {
+	
+	public static void main(String[] args) {
+		ex3();
+	}
+	
 	/* 
 	 * (a) 	 -> {body;}
 	 * a 	 -> {body;} 		// 하나의 매개변수 - 파라미터 괄호 생략
@@ -76,6 +81,7 @@ public class Lamda1 {
 			System.out.println("--------- implements interface2 ---------");
 			return x*y;
 		};
+		
 		System.out.println("return 람다 : "+intf2.ex2Method(a, b));
 		
 		
@@ -88,9 +94,5 @@ public class Lamda1 {
 	
 	interface Ex2_FunctionalInterface {
 		public int ex2Method(int x, int y);
-	}
-	
-	public static void main(String[] args) {
-		ex3();
 	}
 }
