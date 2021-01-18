@@ -12,7 +12,7 @@ import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
 /** parallerTask */
-public class Ex1_parallelTask {
+public class Ex1_Parallel_Task {
 	/* TASK 실행하기
 	 * 자바에서는 보통 다른 테스크와 동시에 Runnable 인터페이스에 실행할 테스크를 작성한다.
 	 * 
